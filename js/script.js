@@ -1,4 +1,4 @@
-//Seleção de Elementos
+// Seleção de Elementos
 const todoForm = document.querySelector("#todo-form");
 const todoInput = document.querySelector("#todo-input");
 const todoList = document.querySelector("#todo-list");
@@ -8,10 +8,31 @@ const cancelEditBtn = document.querySelector("#cancel-edit-btn");
 
 let oldInputValue;
 
-//Funções
-const saveTodo = (text) => {
+// Funções
+const getTodosFromLocalStorage = () => {
+  const todos = localStorage.getItem("todos");
+  return todos ? JSON.parse(todos) : [];
+};
+
+const saveTodosToLocalStorage = (todos) => {
+  localStorage.setItem("todos", JSON.stringify(todos));
+};
+
+const updateLocalStorage = () => {
+  const todos = [];
+  document.querySelectorAll(".todo").forEach((todoEl) => {
+    todos.push({
+      text: todoEl.querySelector("h3").innerText,
+      done: todoEl.classList.contains("done"),
+    });
+  });
+  saveTodosToLocalStorage(todos);
+};
+
+const renderTodo = ({ text, done }) => {
   const todo = document.createElement("div");
   todo.classList.add("todo");
+  if (done) todo.classList.add("done");
 
   const todoTitle = document.createElement("h3");
   todoTitle.innerText = text;
@@ -33,7 +54,19 @@ const saveTodo = (text) => {
   todo.appendChild(deleteBtn);
 
   todoList.appendChild(todo);
+};
 
+const saveTodo = (text) => {
+  const todo = {
+    text,
+    done: false,
+  };
+
+  const todos = getTodosFromLocalStorage();
+  todos.push(todo);
+  saveTodosToLocalStorage(todos);
+
+  renderTodo(todo);
   todoInput.value = "";
   todoInput.focus();
 };
@@ -51,11 +84,14 @@ const updateTodo = (text) => {
     let todoTitle = todo.querySelector("h3");
 
     if (todoTitle.innerText === oldInputValue) {
-        todoTitle.innerText = text
+      todoTitle.innerText = text;
     }
   });
+
+  updateLocalStorage();
 };
-//Eventos
+
+// Eventos
 todoForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
@@ -77,10 +113,12 @@ document.addEventListener("click", (e) => {
 
   if (targetEl.classList.contains("finish-todo")) {
     parentEl.classList.toggle("done");
+    updateLocalStorage();
   }
 
   if (targetEl.classList.contains("remove-todo")) {
     parentEl.remove();
+    updateLocalStorage();
   }
 
   if (targetEl.classList.contains("edit-todo")) {
@@ -107,4 +145,21 @@ editForm.addEventListener("submit", (e) => {
   }
 
   toggleForms();
+});
+
+// Carregar tarefas do localStorage ao abrir a página
+document.addEventListener("DOMContentLoaded", () => {
+  const todos = getTodosFromLocalStorage();
+
+  // Pega os textos das tarefas fixas no HTML
+  const existingTitles = Array.from(document.querySelectorAll(".todo h3")).map(
+    (el) => el.innerText
+  );
+
+  // Adiciona só as que ainda não existem no HTML
+  todos.forEach((todo) => {
+    if (!existingTitles.includes(todo.text)) {
+      renderTodo(todo);
+    }
+  });
 });
